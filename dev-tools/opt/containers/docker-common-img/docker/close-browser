@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+pkill -x epiphany-browser || true
+echo "Epiphany closed (if it was running)."
+

@@ -1,0 +1,26 @@
+# Ubuntu Version (Choose between 20.04 or 22.04)
+ubuntuVersion: 22.04
+
+# Processor Type (Choose between x86_64 or ArmV8)
+processorType: x86_64
+
+# Docker Image Name (Specify the name of the Docker image)
+dockerImageName: jammy-x86_64
+
+# MessageCGTool Branch Name (Specify the branch name for MessageCGTool)
+messageCGToolBranchName: "top-down"
+
+# Nvim Branch Name (Specify the branch name for Neovim)
+nvimBranchName: "docker"
+
+# Clear Base Cache (Set to true or false to clear the base cache)
+clearBaseCache: false
+
+# Clear Derived Cache (Set to true or false to clear the derived cache)
+clearDerivedCache: false
+
+# Is libcxx installed (yes or no)
+isLibcxxInstall: "no"
+
+# Is Yocto installed (yes or no)
+isYoctoInstall: "no"

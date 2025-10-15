@@ -1,0 +1,51 @@
+{
+   Ignore dlopen bug
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.435.21
+   fun:call_init
+   fun:_dl_init
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_exception
+}
+{
+   Dont know why   
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.435.21
+   fun:glXQueryExtensionsString
+   obj:/usr/lib/x86_64-linux-gnu/libglfw.so.3.2
+   obj:/usr/lib/x86_64-linux-gnu/libglfw.so.3.2
+   obj:/usr/lib/x86_64-linux-gnu/libglfw.so.3.2
+   fun:glfwCreateWindow
+}
+{
+   Seems like a repeat
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.435.21
+   obj:/usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.435.21
+   fun:call_init
+   fun:_dl_init
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_exception
+   fun:_dl_catch_error
+}

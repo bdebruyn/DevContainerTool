@@ -1,0 +1,6 @@
+integration: release-0.2
+branch: test-55
+profile: install-debug.sh
+container: test-55
+image: cpp-img
+root: /home/bill/Project/test-55

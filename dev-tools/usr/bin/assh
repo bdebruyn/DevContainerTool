@@ -1,0 +1,22 @@
+#!/bin/bash - 
+#===============================================================================
+#
+#          FILE: build-armv8-img.sh
+# 
+#         USAGE: ./build-armv8-img.sh 
+# 
+#   DESCRIPTION: 
+# 
+#       OPTIONS: ---
+#  REQUIREMENTS: ---
+#          BUGS: ---
+#         NOTES: ---
+#        AUTHOR: bill@azul3d.com
+#  ORGANIZATION: 
+#       CREATED: 04/25/2024 11:01
+#      REVISION:  ---
+#===============================================================================
+
+set -o nounset                              # Treat unset variables as an error
+
+ssh  -o HostKeyAlgorithms=+ssh-rsa root@192.168.10.$1

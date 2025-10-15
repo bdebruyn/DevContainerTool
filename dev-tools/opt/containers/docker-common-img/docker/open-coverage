@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+path="${1:-/repo/coverage/index.html}"
+if [[ "$path" != file://* ]]; then path="file://$path"; fi
+
+# DISPLAY is runtime-specific; default to :0 so it also works with Xvfb/noVNC
+: "${DISPLAY:=:0}"
+
+# Start a dbus session for Epiphany if not already present
+if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+  eval "$(dbus-launch)" >/dev/null 2>&1
+fi
+
+nohup epiphany-browser --new-window "$path" >/tmp/epiphany.out 2>&1 &
+echo "Epiphany launched for $path on DISPLAY=$DISPLAY"
+

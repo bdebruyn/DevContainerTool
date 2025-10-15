@@ -1,0 +1,202 @@
+set nocompatible
+filetype off
+
+set encoding=utf-8
+
+if !exists("autocommands_loaded")
+  let autocommands_loaded = 1
+  autocmd!
+  autocmd vimenter * NERDTree
+  autocmd StdinReadPre * let s:std_in=1
+  autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTreeType == "primary") | q | endif
+
+  " Make the quickfix window across the bottom
+  autocmd FileType qf wincmd J
+endif
+
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+
+Plugin 'gmarik/Vundle.vim'
+Plugin 'morhetz/gruvbox'
+Plugin 'scrooloose/nerdtree'
+Plugin 'scrooloose/syntastic'
+Plugin 'scrooloose/nerdcommenter'
+Plugin 'majutsushi/tagbar'
+Plugin 'bdebruyn/cpp-dev.vim'
+Plugin 'vim-scripts/bash-support.vim'
+Plugin 'vim-scripts/netrw.vim'
+Plugin 'vim-scripts/ctags.vim--Johnson'
+Plugin 'jlanzarotta/bufexplorer'
+Plugin 'rking/ag.vim'
+Plugin 'tpope/vim-abolish'
+Plugin 'tpope/vim-repeat'
+Plugin 'kien/ctrlp.vim'
+Plugin 'Valloric/YouCompleteMe'
+Plugin 'aklt/plantuml-syntax'
+Plugin 'git@github.com:CDJ-Technologies/openai-cg-dev'
+Plugin 'nvim-lua/plenary.nvim'
+Plugin 'davidhalter/jedi-vim'
+Plugin 'nvie/vim-flake8'
+Plugin 'jpalardy/vim-slime'
+Plugin 'hanschen/vim-ipython-cell'
+Plugin 'github/copilot.vim'
+
+
+call vundle#end()
+
+filetype plugin indent on
+syntax on
+
+let g:VIMHOME=expand('<sfile>:p:h')
+
+" EXPERIMENTAL: CAREFUL
+" Set completeopt to have a better completion experience
+set completeopt=menuone,noinsert,noselect
+
+" Enable YouCompleteMe
+let g:ycm_global_ycm_extra_conf = '~/.vim/bundle/YouCompleteMe/.ycm_extra_conf.py'
+
+" clean up extra window from YouCompleteMe
+let g:ycm_preview_to_completeopt=0
+let g:ycm_autoclose_preview_window_after_completion=1
+let g:ycm_actoclose_preview_window_after_insertion=1
+let g:ycm_always_populate_location_list = 1
+
+" Python-specific settings
+autocmd FileType python setlocal expandtab shiftwidth=4 softtabstop=4
+
+set runtimepath+=~/.vim/openai-cg-dev
+set nofoldenable
+
+set showtabline=1
+set guioptions+=e
+set guifont=Monospace\ 9
+set ignorecase
+set smartcase
+set hlsearch
+set incsearch
+set lazyredraw
+set magic
+set showmatch
+set mat=2
+set number
+set history=1000
+set nowrap
+set tw=0
+
+" Put backups in temp folder
+set backup
+set backupdir=~/.vim-tmp,~/.tmp,/var/tmp,/tmp
+set backupskip=/tmp/*,/private/tmp/*
+set directory=~/.vim-tmp,~/tmp,/var/tmp,/tmp
+
+" no annoying sound on errors
+set noerrorbells
+set novisualbell
+set t_vb=
+set tm=500
+
+" Tab settings
+set tabstop=3
+set shiftwidth=3
+set softtabstop=3
+set expandtab
+
+set splitright
+set splitbelow
+
+set errorformat=\../%f\ \+%l\:%c\:%m
+set errorformat+=\../%f\:%l\:%m
+set errorformat+=\../%f\ \+%l\:%c\:%.%#
+set errorformat+=%f\:%l\:%m
+set errorformat+=%f\(%l\):%m
+set errorformat+=%.%#\ File\ \"%f\"\\,\ line\ %l
+
+set shell=/bin/bash
+
+let mapleader = ","
+
+" Make the quickfix window across the bottom
+autocmd FileType qf wincmd J
+
+syntax enable
+set background=dark
+let g:solarized_termcolors = 256
+" set term=xterm-256color
+" set t_Co=256
+silent! colorscheme gruvbox
+
+set guicursor=n-v-c:block-Cursor
+set guicursor+=i:ver25-iCursor
+set guicursor+=n-v-c:blinkon0
+set guicursor+=i:blinkwait10
+
+let g:NERDTreeWinPos = "left"
+
+function! OpenNerdTreePanel()
+   let g:currentWindow=winnr()
+   if g:NERDTree.IsOpen()
+      let g:currentWindow-=1
+   else
+      let g:currentWindow+=1
+   endif
+   exec "NERDTreeToggle"
+   call RestoreEditWindow()
+endfunction
+
+"let g:python3_host_prog = '/repo/mambaforge/env/spyder-env/bin/python'
+let g:python3_host_prog = '/usr/bin/python'
+
+let g:slime_target = 'tmux'
+let g:slime_python_ipython = 1
+let g:slime_default_config = {
+            \ 'socket_name': get(split($TMUX, ','), 0),
+            \ 'target_pane': '{top-right}' }
+let g:slime_dont_ask_default = 1
+
+" Keyboard mappings. <Leader> is \ (backslash) by default
+"-hold-for-now-" nnoremap <Leader>s :SlimeSend1 ipython --matplotlib<CR>
+"-hold-for-now-" nnoremap <Leader>r :IPythonCellRun<CR>
+"-hold-for-now-" nnoremap <Leader>R :IPythonCellRunTime<CR>
+"-hold-for-now-" nnoremap <Leader>c :IPythonCellExecuteCell<CR>
+"-hold-for-now-" nnoremap <Leader>C :IPythonCellExecuteCellJump<CR>
+"-hold-for-now-" nnoremap <Leader>l :IPythonCellClear<CR>
+"-hold-for-now-" nnoremap <Leader>x :IPythonCellClose<CR>
+"-hold-for-now-" nnoremap [c :IPythonCellPrevCell<CR>
+"-hold-for-now-" nnoremap ]c :IPythonCellNextCell<CR>
+"-hold-for-now-" nmap <Leader>h <Plug>SlimeLineSend
+"-hold-for-now-" xmap <Leader>h <Plug>SlimeRegionSend
+"-hold-for-now-" nnoremap <Leader>p :IPythonCellPrevCommand<CR>
+"-hold-for-now-" nnoremap <Leader>Q :IPythonCellRestart<CR>
+"-hold-for-now-" nnoremap <Leader>d :SlimeSend1 %debug<CR>
+"-hold-for-now-" nnoremap <Leader>q :SlimeSend1 exit<CR>
+"-hold-for-now-" nmap <F9> :IPythonCellInsertAbove<CR>a
+"-hold-for-now-" nmap <F10> :IPythonCellInsertBelow<CR>a
+"-hold-for-now-" imap <F9> <C-o>:IPythonCellInsertAbove<CR>
+"-hold-for-now-" imap <F10> <C-o>:IPythonCellInsertBelow<CR>
+
+
+inoremap jk <esc>
+
+nnoremap <Leader>n :call OpenNerdTreePanel()<cr>
+nnoremap <silent> <Leader>v :NERDTreeFind<CR>
+nnoremap <leader>i :tabnew<bar>call OpenNerdTreePanel()<CR>
+nnoremap <leader>D :tabclose<CR>
+
+nmap <C-h> <C-w>h
+nmap <C-j> <C-w>j
+nmap <C-k> <C-w>k
+nmap <C-l> <C-w>l
+
+" " window
+nmap <leader>wh :topleft  vnew<CR>
+nmap <leader>wl :botright vnew<CR>
+nmap <leader>wk :topleft  new<CR>
+nmap <leader>wj :botright new<CR>
+" buffer
+nmap <leader>s<left>   :leftabove  vnew<CR>
+nmap <leader>s<right>  :rightbelow vnew<CR>
+nmap <leader>s<up>     :leftabove  new<CR>
+nmap <leader>s<down>   :rightbelow new<CR>
+

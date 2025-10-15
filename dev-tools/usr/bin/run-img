@@ -1,0 +1,325 @@
+#!/usr/bin/env bash
+#===============================================================================
+#
+#          FILE: run-img.sh
+# 
+#         USAGE: run-img.sh name
+# 
+#   DESCRIPTION: 
+#                 Creates a container using the string argument "name" to name
+#                 the container
+# 
+#       OPTIONS: ---
+#  REQUIREMENTS: ---
+#          BUGS: --- #         NOTES: --- #        AUTHOR: --- #
+#  ORGANIZATION: 
+#       CREATED: 09/21/2025 
+#      REVISION:  ---
+#===============================================================================
+
+set -o nounset                              # Treat unset variables as an error
+
+#-------------------------------------------------------------------------------
+#
+#  Global Variables
+#
+#-------------------------------------------------------------------------------
+option=""
+error=""
+yamlFile=""
+integration=""
+branch=""
+profile=""
+container=""
+image=""
+root=""
+isImage=""
+returnValue=false
+deployroot=""
+deploycontainer=""
+deployarmimage=""
+deployonly=""
+isNvidia=""
+isOpenCL=""
+#-------------------------------------------------------------------------------
+#
+#  Local Functions
+#
+#-------------------------------------------------------------------------------
+verifyYamlFileExists() {
+   if [ -f "$yamlFile" ]; then
+      echo "found $yamlFile"
+      returnValue=true
+   else
+      echo "ERROR: file does not exist: $yamlFile"
+      returnValue=false
+   fi
+}
+parseYamlFile() {
+   integration=$(grep "integration:" $yamlFile | cut -d':' -f2 |xargs)
+   branch=$(grep "branch:" $yamlFile | cut -d':' -f2 |xargs)
+   profile=$(grep "profile:" $yamlFile | cut -d':' -f2 |xargs)
+   container=$(grep "container:" $yamlFile | cut -d':' -f2 |xargs)
+   image=$(grep "image:" $yamlFile | cut -d':' -f2-3 |xargs)
+   root=$(grep "root:" $yamlFile | cut -d':' -f2 |xargs)
+}
+verifyDockerImage() {
+   isImage=$(docker images ${image} -q)
+   
+   if [ -z "$isImage" ]; then
+      echo "$image not found"
+      returnValue=false
+   else
+      returnValue=true
+   fi
+}
+displayContainerByName() {
+   docker ps --filter "name=$container"
+}
+displayUsage() {
+   echo "usage:"
+   echo " .          # lists all docker containers"
+   echo " <name>     # list docker containers having name or matching substring"
+   echo " -k <name>  # remove docker container with <name>"
+   echo " -f <file>.yaml # create docker container from yaml parameters"
+}
+removeContainer() {
+   result=$(docker ps -a --no-trunc --filter name=${container} -q)
+   
+   if [[ -n "$result" ]]; then
+      docker stop ${container}
+      docker rm ${container}
+   fi
+}
+
+createContainer() 
+{
+   verifyDockerImage
+
+   if [ $returnValue == false ]; then
+      exit 1
+   fi
+
+   nvidia=$(lspci | grep "VGA"| cut -d[ -f2 | cut -d] -f1)
+   expectNvidiaGPU="GeForce GTX 1060 6GB"
+   expectBuildServerGPU="GeForce GTX 1660"
+   
+   platform=$(uname -s)
+   
+   XAuth="-v ${HOME}/.Xauthority:/root/.Xauthority"
+   network="--network=host"
+   isNvidia=""
+   isOpenCL=""
+   addHost=""
+   x11Unix="-v /tmp/.X11-unix:/tmp/.X11-unix"
+   
+   if [ "nvidia-img" == "${image}" ]; then
+      isNvidia="--runtime=nvidia"
+      gpus="--gpus all"
+      isOpenCL="-v /etc/OpenCL/vendors:/etc/OpenCL/vendors"
+      cpusCount=$(grep -c processor /proc/cpuinfo)
+      display="-e DISPLAY=${DISPLAY}"
+   elif [ "Darwin" = "$platform" ]; then
+      open -a XQuartz
+      xhost + 127.0.0.1
+      xhost + localhost
+
+      XAuth=""
+      network=""
+      cpusCount=1
+      display="-e DISPLAY=host.docker.internal:0.0"
+      gpus=""
+      addHost="--add-host=host.docker.internal:127.0.0.1"
+      x11Unix=""
+
+      # export IP=$(ifconfig en0 | grep inet | awk '$1=="inet" {print $2}')
+      # xhost + $IP
+      # export DISPLAY=${IP}:0
+      # cpusCount=$(sysctl -n hw.physicalcpu)
+      # #display=""
+      # display="-e DISPLAY=${DISPLAY}"
+      # gpus=""
+   else
+      cpusCount=$(grep -c processor /proc/cpuinfo)
+      display="-e DISPLAY=${DISPLAY}"
+   
+      if [[ "$nvidia" == "$expectNvidiaGPU" || "$nvidia" == "$expectBuildServerGPU" ]]; then
+         gpus="--gpus all"
+      else
+         gpus=""  #" --gpus all"
+      fi
+   fi
+   
+   subtract1=1
+   cpus="$(($cpusCount-$subtract1))"
+   echo "cpus=$cpus"
+   
+   #
+   # create a directory to hold Conan cache
+   #
+   
+   CacheDir=".conan/data"
+   mkdir -p $CacheDir
+   
+   # removeContainer
+   # thisDirectory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+   # . ${thisDirectory}/remove-dev-env.sh ${container}
+
+   docker create -it ${isNvidia} --name ${container} \
+      --expose 49152 \
+      ${network} \
+      --cpuset-cpus=0-${cpus} \
+      --env CONAN_REVISIONS_ENABLED=1 \
+      --env CONAN_CPU_COUNT=${cpusCount} \
+      --env BRANCH_INT=${integration} \
+      --env BRANCH_DEV=${branch} \
+      --env CACHE_LOCATION=${root} \
+      --env CONTAINER_NAME=${container} \
+      --env IMAGE_NAME=${image} \
+      --env CONAN_PROFILE=${profile} \
+      ${gpus} \
+      -v ${HOME}/.gitconfig:/home/ubuntu/.gitconfig \
+      -v ${HOME}/.ssh/id_rsa:/home/ubuntu/.ssh/id_rsa \
+      -v $(pwd):/repo:delegated \
+      -v $(pwd)/$CacheDir:/home/ubuntu/.conan/data:delegated \
+      -v /tmp:/tmp:delegated \
+      ${x11Unix} \
+      ${isOpenCL} \
+      ${addHost} \
+      ${display} \
+      -e NVIDIA_DRIVER_CAPABILITIES=all \
+      ${XAuth} \
+      --device /dev/snd \
+      --device /dev/dri \
+      --device /dev \
+      --hostname $(hostname) \
+      --cap-add=ALL --cap-add=sys_nice --ulimit rtprio=99  --pid=host \
+      --privileged \
+      ${image} && \
+   docker start ${container}
+
+}
+
+mkdirFromRootPath() {
+   mkdir -p "$root"
+
+   if [ ! -d "$root" ]; then
+      echo "ERROR: path does not exist " + "$root"
+      exit 1
+   fi
+}
+changeDirectoryToRoot() {
+   cd $root
+}
+isDockerContainerRunning() {
+   result="$(docker ps -a --no-trunc --filter name=${container} -q)"
+      
+   if [[ "$result" == "" ]]; then
+      returnValue=false
+   else
+      returnValue=true
+   fi
+}
+runDockerContainer() 
+{
+   isDockerContainerRunning
+
+   if [ $returnValue == false ]; then
+      createContainer
+   fi
+
+   if [ "$option" == "run" ]; then
+      docker exec -it ${container} /bin/bash
+   fi
+}
+parseDeploymentYamlFile() {
+   parseYamlFile
+   deployroot="${root}"
+   deploycontainer="${container}"
+   deployarmimage="${image}"
+}
+mkdirForx86_64() {
+   mkdir -p "${deployroot}/x86"
+
+   if [ ! -d "${deployroot}/x86" ]; then
+      echo "ERROR: path does not exist " + "${deployroot}/x86_64"
+      exit 1
+   fi
+}
+mkdirForarmv8() {
+   mkdir -p "${deployroot}/armv8"
+
+   if [ ! -d "${deployroot}/armv8" ]; then
+      echo "ERROR: path does not exist " + "${deployroot}/armv8"
+      exit 1
+   fi
+}
+runx86Container() {
+   runDockerContainer
+}
+
+#-------------------------------------------------------------------------------
+#
+#  Main
+#
+#-------------------------------------------------------------------------------
+if [ "$#" -eq 0 ]; then
+   displayUsage
+   exit 0
+elif [ "$#" -eq 1 ]; then
+   #
+   # display the docker containers by name
+   #
+   container="$1"
+   displayContainerByName
+   exit 0
+elif [ "$#" -eq 2 ]; then
+   if [ "-k" == "$1" ]; then
+      #
+      # -k kills a new docker container having the name in $2
+      #
+      option="kill"
+      container="$2"
+
+      if [ "$option" == "kill" ]; then
+         #
+         # kills a docker container 
+         #
+         removeContainer
+         exit 0
+      fi
+   elif [ "-f" == "$1" ]; then
+      #
+      # -f run or create a container from the yaml file
+      #
+      option="run"
+      yamlFile="$2"
+
+      verifyYamlFileExists
+
+      if [ $returnValue == false ]; then
+         exit 1
+      fi
+
+      if [ "$option" == "run" ]; then
+         #
+         # run or create a docker container from the yaml config file
+         #
+         echo "#--------------------- parseYamlFile ------------------------------------#"
+         parseYamlFile
+         echo "#--------------------- verifyDockerImage --------------------------------#"
+         verifyDockerImage
+         echo "#--------------------- mkdirFromRootPath --------------------------------#"
+         mkdirFromRootPath
+         echo "#--------------------- changeDirectoryToRoot ----------------------------#"
+         changeDirectoryToRoot
+         echo "#--------------------- runDockerContainer -------------------------------#"
+         runDockerContainer
+         echo "#--------------------- Done ---------------------------------------------#"
+         exit 0
+      fi
+   fi
+else
+   displayUsage
+   exit 1
+fi

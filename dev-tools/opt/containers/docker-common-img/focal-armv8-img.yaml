@@ -1,0 +1,26 @@
+# Ubuntu Version (Choose between 20.04 or 22.04)
+ubuntuVersion: 20.04
+
+# Processor Type (Choose between x86_64 or ArmV8)
+processorType: ArmV8
+
+# Docker Image Name (Specify the name of the Docker image)
+dockerImageName: armv8-dunfell-img
+
+# MessageCGTool Branch Name (Specify the branch name for MessageCGTool)
+messageCGToolBranchName: "top-down"
+
+# Nvim Branch Name (Specify the branch name for Neovim)
+nvimBranchName: "docker"
+
+# Clear Base Cache (Set to true or false to clear the base cache)
+clearBaseCache: false
+
+# Clear Derived Cache (Set to true or false to clear the derived cache)
+clearDerivedCache: true
+
+# Is libcxx installed (yes or no)
+isLibcxxInstall: "no"
+
+# Is Yocto installed (yes or no)
+isYoctoInstall: "yes"

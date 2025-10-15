@@ -1,0 +1,1 @@
+--tool=memcheck --leak-check=full --suppressions=/home/ubuntu/opengl.supp

@@ -179,7 +179,7 @@ createContainer()
       --env CONAN_PROFILE=${profile} \
       ${gpus} \
       -v ${HOME}/.gitconfig:/home/ubuntu/.gitconfig \
-      -v ${HOME}/.ssh/id_rsa:/home/ubuntu/.ssh/id_rsa \
+      -v ${HOME}/.ssh:/home/ubuntu/.ssh \
       -v $(pwd):/repo:delegated \
       -v $(pwd)/$CacheDir:/home/ubuntu/.conan/data:delegated \
       -v /tmp:/tmp:delegated \

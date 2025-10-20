@@ -1,122 +1,236 @@
-# dev-tools
+# DevContainerTool
 
-This tool provides much of the boilerplate functionality required to stand up 
-a docker container for developing code
+A modular development container system for building, testing, and deploying C++ and Python projects under **Ubuntu 22.04 (Jammy)** and **Ubuntu 20.04 (Dunfell)** environments.  
+It automates image creation, container execution, dependency management, testing, coverage analysis, and deployment—supporting both **AMD64** and **ARMv8** workflows.
 
-## Latest Installation Instructions
+---
 
-The biggest change is 
-1. Remove all docker containers by running this command `remove-all-containers`
+## 🔧 Overview
 
-2. Remove all docker images by running this command `remove-all-docker-images`.   <b>NOTICE: ALL IMAGES WILL BE REMOVED</b>
+DevContainerTool standardizes your build workflow through Dockerized environments that include:
 
-3. Run `sudo install-dev-tools.sh`.
+- Preinstalled **C++/Python toolchains**, `cmake`, `conan`, `gtest`, `gcov/llvm-cov`, and editors (`vim`, `nvim`).
+- Host integration: `~/.ssh` and `~/.gitconfig` automatically mapped for private repo access.
+- Seamless build and coverage pipelines—results viewable from your host browser.
+- Configurable build targets (AMD64, ARMv8 with Yocto SDK).
+- Conan-powered dependency management.
+- Support for **cross-compiling and remote testing** on physical ARM boards.
+- Optional integration with **[cpp-dev.vim](https://github.com/bedebruyn/cpp-dev.vim)** for fully automated build/test/deploy loops.
 
-NOTE: The debian tool is no longer used to perform the installation. Symbolic links now link files and directories in the root space to files and directories int the git repo space. Installation is quick and easy. Updates made in the repo are automatically reflected in the root space.
+---
 
-### Under the Hood
-
-1. The tool perform an uninstall of the previous version by unlinking files and directories between the root and user space.
-2. The command `sudo ./dev-tools/uninstall.sh` is run by `install-dev-tools.sh`
-
-The install the new tools is performed by running the command `sudo ./dev-tools/install.sh`
-
-### Directory Layout
-
-```
-├── dev-tools
-│   ├── install.sh
-│   ├── uninstall.sh
-│   ├── DEBIAN
-│   │   └── control
-│   ├── nvidia
-│   │   └── install-nvidia-container-toolkit.sh
-│   ├── opt
-│   │   └── containers
-│   │       ├── container-manager
-│   │       ├── docker-common-img
-│   │       ├── docs
-│   │       ├── README.md
-│   │       └── tools
-│   └── usr
-│       └── bin
-│           ├── assh
-│           ├── azul3d-img
-│           ├── build-armv8-dunfell-img.sh
-│           ├── build-x86_64-img.sh
-│           ├── build-x86_64-libcxx-img.sh
-│           ├── build-yocto-img.sh
-│           ├── calcSha256.sh
-│           ├── fetchLatestImage.sh
-│           ├── ip-masquerading.sh
-│           ├── new-branch-for-all.sh
-│           ├── remove-all-containers
-│           ├── remove-all-docker-images
-│           └── switch-test.sh
-├── install-dev-tools.sh
-└── README.md
-```
-
-Tab completion in the shell is usually handled by bash-completion package. If tab completion is not working for symbolic links, there are a few things you can check or try to fix the issue:
-
-Ensure bash-completion is installed:
-Make sure you have the bash-completion package installed. You can install it using:
+## 🚀 Quick Start
 
 ```bash
-sudo apt update
-sudo apt install bash-completion
+# 1. Install host-side symlinks (adds all tools to /usr/local/bin)
+install-dev-tools.sh
+
+# 2. Build the x86_64 image (Ubuntu 22.04)
+build-jammy-x86_64-img.sh
+
+# 3. Or build the ArmV8 Dunfell image (Ubuntu 20.04 + Yocto SDK)
+build-armv8-dunfell-img.sh
+
+# 4. Start a dev container for your project
+run-img -f <name>.yaml
 ```
 
-Check if bash-completion is enabled:
-Ensure that bash-completion is sourced in your .bashrc or .bash_profile. You can add the following lines to your .bashrc:
+You’ll enter an interactive shell in `/repo` (mounted from your host).  
+Build, test, and generate coverage as usual—outputs remain in your host workspace.
+
+---
+
+## 📦 Installation
+
+Running `install-dev-tools.sh`:
+
+1. Executes `uninstall.sh` to remove any stale symlinks in `/usr/local/bin`.
+2. Runs `install.sh` to link all utility scripts (`run-img`, `build-*`, etc.) from the repo into `/usr/local/bin`.
+
+No binaries are installed system-wide—just symbolic links for convenience.  
+Docker must already be installed on the host.
+
+---
+
+## 🧰 Usage
+
+### Run a Dev Container
 
 ```bash
-if [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-fi
+run-img -f <name>.yaml
 ```
 
-After adding this, reload your .bashrc:
+What happens:
+
+- Creates a container (if missing) from the specified image.
+- Mounts the **current working directory** into `/repo`.
+- Maps host SSH/Git config for private repo access.
+- Passes environment variables (`BRANCH_DEV`, `BRANCH_INT`, `CONAN_PROFILE`).
+- Enables host networking and privileged access for development.
+
+Re-running `run-img` launches additional terminals into the same container.
+
+### View Coverage Results
+
+All `gcov`/`llvm-cov` HTML files generated inside the container appear in your mounted project directory.  
+You can open `coverage/index.html` directly in your host browser—no GUI needed inside the container.
+
+### Conan + CMake Workflow
+
+Conan manages dependencies and compiler configurations:
 
 ```bash
-source ~/.bashrc
+conan install . --build=missing -pr <profile>
+cmake -B build -S .
+cmake --build build -j
+ctest --test-dir build
 ```
 
-# Jammy (Ubuntu 22.04)
+Helper `.cmake` functions simplify adding source and header files to static/dynamic targets.
 
-Jammy requires a stronger encryption. Using the old RSA key generation will not work with TCP. It includes `ssh`, `mqtt`, `tcp` and so on.
+### gtest Harness
 
-The temporary workaround is
+Included test runners allow execution of:
+
+- A single fixture,
+- All fixtures in one file,
+- Or all compiled tests.
+
+Coverage tools (gcov/llvm-cov) integrate seamlessly with these workflows.
+
+---
+
+## 🧩 ARMv8 / Yocto Dunfell Workflow
+
+The **ARMV8** variant uses **Ubuntu 20.04 (Dunfell)** and leverages the **NXP Yocto SDK** installed under `/opt`.
+
+### Build the Image
 
 ```bash
-sudo vim /etc/ssh/ssh_config
+build-armv8-dunfell-img.sh
 ```
 
-Add the following options
+- Uses the same `RunConfig.sh` framework as Jammy.
+- Mounts the Yocto SDK into `/opt` within the container (generic setup, external SDK required).
+- Configures the Conan profile to use Yocto’s cross-compilers (`aarch64-linux-gnu-*`).
+- Ensures identical workflow across architectures.
+
+### Cross-Compile & Remote Testing
+
+When connected to an ARM target via Ethernet:
+
+1. The container uses an **environment variable** (set by the user) containing the board’s IP.
+2. A helper script (integrated through the [cpp-dev.vim](https://github.com/bedebruyn/cpp-dev.vim) plugin) automates:
+   - Copying the compiled binaries to the target.
+   - Executing them remotely via SSH.
+   - Capturing test logs and coverage results.
+   - Copying results (including **coverage HTML**) back to the host-mounted project directory.
+
+You can open these coverage reports on the host browser, just as you do for x86 builds.
+
+---
+
+## ⚙️ Configuration (YAML)
+
+### Example (`<name>.yaml`)
+
+```yaml
+integration: main
+branch:      MyFeatureBranch
+root:        AppRepoName
+container:   MyFeatureBranch
+profile:     install-gcov.sh
+image:       jammy-x86_64
+```
+
+Each field’s role:
+
+| Field | Description |
+|-------|-------------|
+| `integration` | Integration branch where feature merges back |
+| `branch` | Active development branch |
+| `root` | Top-level directory of the GitHub repo |
+| `container` | Container name for this session |
+| `profile` | Conan configuration or setup script |
+| `image` | Docker image tag to use |
+
+Invoke with:
+
 ```bash
-Host *
-    # ... other options ...
-    HostKeyAlgorithms +ssh-rsa
-    PubkeyAcceptedKeyTypes +ssh-rsa
-    # ... other options ...
-    IdentityFile ~/.ssh/id_rsa
+run-img -f <name>.yaml
 ```
 
-Test the fix using
-```bash
-ssh root@192.168.10.10
-```
+---
 
-This is just a temporary fix until you have regenerated your encryption key with a stronger key with sites like github.
+## 🧱 File Reference
 
-# Installation
+| File | Role |
+|------|------|
+| **install-dev-tools.sh** | Host installer: removes and reinstalls tool symlinks in `/usr/local/bin` |
+| **install.sh** | Creates symlinks from repo tools to `/usr/local/bin` |
+| **uninstall.sh** | Removes existing DevContainerTool symlinks |
+| **build-jammy-x86_64-img.sh** | Builds Ubuntu 22.04 x86_64 image from Dockerfile |
+| **build-armv8-dunfell-img.sh** | Builds Ubuntu 20.04 (Yocto Dunfell) image for ARMV8 toolchain |
+| **RunConfig.sh** | Common driver: parses YAML, symlinks correct Dockerfile, runs `docker build` with args |
+| **run-img** | Core runtime script: reads YAML, creates/starts container, mounts volumes, passes SSH & Git configs |
+| **Dockerfile** | Defines Jammy developer environment: compilers, cmake, vim/nvim, conan, gtest, gcov |
+| **<name>.yaml** | Example YAML defining branches, container/image names, and conan profile |
 
-## NVIDIA-RTX-3070-TI Install
+---
 
-```bash
-$ apt search nvida-driver
-$ sudo apt update
-$ sudo apt upgrade
-$ sudo apt install [driver-name]
-```
-Example is Linux kernel version 5.15.0-84. The `driver-name` is `nvidia-driver-525`, You may have to uninstall and install it again. If you get a blank screen after boot, use `ctrl` + `alt` + `F2` to get into terminal mode.
+## 🌐 Integration with cpp-dev.vim
+
+**cpp-dev.vim** (Vim/Neovim plugin) automates DevContainerTool workflows directly from your editor:  
+
+- Cross-compiles C++ targets inside the container.  
+- Transfers binaries to a remote ARM target via SSH.  
+- Executes unit tests and retrieves results automatically.  
+- Copies **coverage HTML output** back to the host-mounted workspace for viewing.  
+
+This integration provides a seamless “build → deploy → test → coverage” loop from within Vim/Neovim.
+
+---
+
+## 🧩 Under the Hood
+
+DevContainerTool uses modular Bash scripts that cooperate through YAML-driven orchestration:
+
+1. `install-dev-tools.sh` calls `uninstall.sh` → `install.sh`.
+2. `build-jammy-x86_64-img.sh` and `build-armv8-dunfell-img.sh` both call `RunConfig.sh`.
+3. `RunConfig.sh` reads YAML, selects Dockerfile, and builds image with UID/GID mapping.
+4. `run-img` creates containers, mounts host workspace, injects SSH/Git credentials, and launches an interactive shell.
+5. Coverage and test results remain on the host due to the volume mount model.
+
+---
+
+## 📋 Prerequisites
+
+- Docker installed and configured for non-root execution.  
+- Host has `~/.gitconfig` and `~/.ssh/id_rsa` (for private repo access).  
+- Basic familiarity with `docker`, `conan`, and `cmake` is assumed.  
+
+---
+
+## 🧪 Example Workflow Summary
+
+| Step | Command | Description |
+|------|----------|-------------|
+| 1 | `install-dev-tools.sh` | Install symlinks |
+| 2 | `build-jammy-x86_64-img.sh` | Build image for host architecture |
+| 3 | `run-img -f <name>.yaml` | Start container for project |
+| 4 | `conan install` + `cmake` | Configure & build |
+| 5 | `ctest` | Run tests |
+| 6 | `gcovr --html-details` | Generate coverage |
+| 7 | `open coverage/index.html` | View coverage in host browser |
+
+---
+
+## 🧑‍💻 Contributing
+
+Pull requests are welcome. Keep scripts POSIX-compliant where practical and maintain consistency across x86 and ARM workflows.  
+
+---
+
+## 🪪 License
+
+MIT License (or organization-specific equivalent).
